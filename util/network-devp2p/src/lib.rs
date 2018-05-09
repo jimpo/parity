@@ -106,6 +106,7 @@ mod discovery;
 mod service;
 mod node_table;
 mod ip_utils;
+mod math;
 
 pub use service::NetworkService;
 pub use host::NetworkContext;
