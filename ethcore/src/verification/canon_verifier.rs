@@ -22,7 +22,7 @@ use header::Header;
 use super::Verifier;
 use super::verification;
 
-/// A canonial verifier -- this does full verification.
+/// A canonical verifier -- this does full verification.
 pub struct CanonVerifier;
 
 impl Verifier for CanonVerifier {

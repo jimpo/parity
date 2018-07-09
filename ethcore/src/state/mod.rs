@@ -24,6 +24,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 use std::sync::Arc;
+use std::time::{Instant, Duration};
 use hash::{KECCAK_NULL_RLP, KECCAK_EMPTY};
 
 use receipt::{Receipt, TransactionOutcome};
@@ -744,14 +745,21 @@ impl<B: Backend> State<B> {
 
 	/// Commits our cached account changes into the trie.
 	pub fn commit(&mut self) -> Result<(), Error> {
+		let (start_insert, start_remove) = self.db.as_hashdb().stats();
+		let start = Instant::now();
+
 		// first, commit the sub trees.
 		let mut accounts = self.cache.borrow_mut();
+		let mut total_changes = 0;
+		let mut total_elapsed = Duration::default();
 		for (address, ref mut a) in accounts.iter_mut().filter(|&(_, ref a)| a.is_dirty()) {
 			if let Some(ref mut account) = a.account {
 				let addr_hash = account.address_hash(address);
 				{
 					let mut account_db = self.factories.accountdb.create(self.db.as_hashdb_mut(), addr_hash);
-					account.commit_storage(&self.factories.trie, account_db.as_hashdb_mut())?;
+					let (num_changes, elapsed) = account.commit_storage(&self.factories.trie, account_db.as_hashdb_mut())?;
+					total_changes += num_changes;
+					total_elapsed += elapsed;
 					account.commit_code(account_db.as_hashdb_mut());
 				}
 				if !account.is_empty() {
@@ -760,8 +768,11 @@ impl<B: Backend> State<B> {
 			}
 		}
 
+		let (num_accounts, account_time) =
 		{
 			let mut trie = self.factories.trie.from_existing(self.db.as_hashdb_mut(), &mut self.root)?;
+			let start_accounts = Instant::now();
+			let mut num_accounts = 0;
 			for (address, ref mut a) in accounts.iter_mut().filter(|&(_, ref a)| a.is_dirty()) {
 				a.state = AccountState::Committed;
 				match a.account {
@@ -772,8 +783,18 @@ impl<B: Backend> State<B> {
 						trie.remove(address)?;
 					},
 				};
+				num_accounts += 1;
 			}
-		}
+			let end_accounts = Instant::now();
+			(num_accounts, end_accounts.duration_since(start_accounts))
+		};
+
+		let end = Instant::now();
+		let (end_insert, end_remove) = self.db.as_hashdb().stats();
+		info!("State::commit # state changes: {}, account changes: {}, total time: {:?}, state time: {:?}, account time: {:?}, db inserts: {}, db removes: {}",
+			  total_changes, num_accounts,
+			  end.duration_since(start), total_elapsed, account_time,
+			  end_insert - start_insert, end_remove - start_remove);
 
 		Ok(())
 	}

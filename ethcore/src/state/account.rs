@@ -18,6 +18,7 @@
 
 use std::fmt;
 use std::sync::Arc;
+use std::time::{Instant, Duration};
 use std::collections::{HashMap, BTreeMap};
 use hash::{KECCAK_EMPTY, KECCAK_NULL_RLP, keccak};
 use ethereum_types::{H256, U256, Address};
@@ -362,8 +363,10 @@ impl Account {
 	}
 
 	/// Commit the `storage_changes` to the backing DB and update `storage_root`.
-	pub fn commit_storage(&mut self, trie_factory: &TrieFactory, db: &mut HashDB) -> trie::Result<()> {
+	pub fn commit_storage(&mut self, trie_factory: &TrieFactory, db: &mut HashDB) -> trie::Result<(usize, Duration)> {
+		let start = Instant::now();
 		let mut t = trie_factory.from_existing(db, &mut self.storage_root)?;
+		let num_changes = self.storage_changes.len();
 		for (k, v) in self.storage_changes.drain() {
 			// cast key and value to trait type,
 			// so we can call overloaded `to_bytes` method
@@ -374,7 +377,8 @@ impl Account {
 
 			self.storage_cache.borrow_mut().insert(k, v);
 		}
-		Ok(())
+		let end = Instant::now();
+		Ok((num_changes, end.duration_since(start)))
 	}
 
 	/// Commit any unsaved code. `code_hash` will always return the hash of the `code_cache` after this.

@@ -393,6 +393,7 @@ impl<'x> OpenBlock<'x> {
 			warn!("Encountered error on closing the block: {}", e);
 		}
 
+		info!("OpenBlock::close pre-commit number: {}", s.block.header.number());
 		if let Err(e) = s.block.state.commit() {
 			warn!("Encountered error on state commit: {}", e);
 		}
@@ -403,6 +404,7 @@ impl<'x> OpenBlock<'x> {
 		s.block.header.set_receipts_root(ordered_trie_root(s.block.receipts.iter().map(|r| r.rlp_bytes())));
 		s.block.header.set_log_bloom(s.block.receipts.iter().fold(Bloom::zero(), |mut b, r| {b = &b | &r.log_bloom; b})); //TODO: use |= operator
 		s.block.header.set_gas_used(s.block.receipts.last().map_or(U256::zero(), |r| r.gas_used));
+		info!("OpenBlock::close number: {}, gas_used: {}", s.block.header.number(), s.block.header.gas_used());
 
 		ClosedBlock {
 			block: s.block,
@@ -419,6 +421,7 @@ impl<'x> OpenBlock<'x> {
 			warn!("Encountered error on closing the block: {}", e);
 		}
 
+		info!("OpenBlock::close_and_lock pre-commit number: {}", s.block.header.number());
 		if let Err(e) = s.block.state.commit() {
 			warn!("Encountered error on state commit: {}", e);
 		}
@@ -436,6 +439,7 @@ impl<'x> OpenBlock<'x> {
 		s.block.header.set_state_root(s.block.state.root().clone());
 		s.block.header.set_log_bloom(s.block.receipts.iter().fold(Bloom::zero(), |mut b, r| {b = &b | &r.log_bloom; b})); //TODO: use |= operator
 		s.block.header.set_gas_used(s.block.receipts.last().map_or(U256::zero(), |r| r.gas_used));
+		info!("OpenBlock::close_and_lock number: {}, gas_used: {}", s.block.header.number(), s.block.header.gas_used());
 
 		LockedBlock {
 			block: s.block,

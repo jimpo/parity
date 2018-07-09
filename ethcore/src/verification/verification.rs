@@ -277,6 +277,7 @@ pub fn verify_header_params(header: &Header, engine: &EthEngine, is_full: bool) 
 		let timestamp = header.timestamp();
 
 		if timestamp > invalid_threshold {
+			// TODO: Second look
 			return Err(From::from(BlockError::InvalidTimestamp(OutOfBounds { max: Some(max_time), min: None, found: timestamp })))
 		}
 

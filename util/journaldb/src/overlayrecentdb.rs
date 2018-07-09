@@ -68,6 +68,8 @@ pub struct OverlayRecentDB {
 	backing: Arc<KeyValueDB>,
 	journal_overlay: Arc<RwLock<JournalOverlay>>,
 	column: Option<u32>,
+	total_insert: usize,
+	total_remove: usize,
 }
 
 #[derive(PartialEq)]
@@ -100,6 +102,8 @@ impl Clone for OverlayRecentDB {
 			backing: self.backing.clone(),
 			journal_overlay: self.journal_overlay.clone(),
 			column: self.column.clone(),
+			total_insert: self.total_insert,
+			total_remove: self.total_remove,
 		}
 	}
 }
@@ -115,6 +119,8 @@ impl OverlayRecentDB {
 			backing: backing,
 			journal_overlay: journal_overlay,
 			column: col,
+			total_insert: 0,
+			total_remove: 0,
 		}
 	}
 
@@ -441,13 +447,20 @@ impl HashDB for OverlayRecentDB {
 	}
 
 	fn insert(&mut self, value: &[u8]) -> H256 {
+		self.total_insert += 1;
 		self.transaction_overlay.insert(value)
 	}
 	fn emplace(&mut self, key: H256, value: DBValue) {
+		self.total_insert += 1;
 		self.transaction_overlay.emplace(key, value);
 	}
 	fn remove(&mut self, key: &H256) {
+		self.total_remove += 1;
 		self.transaction_overlay.remove(key);
+	}
+
+	fn stats(&self) -> (usize, usize) {
+		(self.total_insert, self.total_remove)
 	}
 }
 
