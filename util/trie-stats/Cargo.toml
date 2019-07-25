@@ -1,0 +1,19 @@
+[package]
+name = "trie-stats"
+version = "0.1.0"
+authors = ["Jim Posen <jim.posen@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+hash-db = "0.12"
+elastic-array = { version = "0.10", default-features = false }
+trie-db = "0.12"
+hex = "0.3"
+rlp = "0.4.0"
+
+[dev-dependencies]
+memory-db = "0.12"
+keccak-hasher = "0.12"
+reference-trie = "0.12"
+hex-literal = "0.2"
+

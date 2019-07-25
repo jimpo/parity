@@ -28,6 +28,7 @@ rlp = "0.4.0"
 serde = { version = "1.0", features = ["derive"] }
 trace = { path = "../trace" }
 trie-db = "0.12.4"
+trie-stats = { path = "../../util/trie-stats" }
 
 [dev-dependencies]
 account-db = { path = "../account-db" }

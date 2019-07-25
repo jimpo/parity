@@ -48,7 +48,7 @@ use ethcore_private_tx::{ProviderConfig, EncryptorConfig};
 use secretstore::{NodeSecretKey, Configuration as SecretStoreConfiguration, ContractAddress as SecretStoreContractAddress};
 use updater::{UpdatePolicy, UpdateFilter, ReleaseTrack};
 use run::RunCmd;
-use blockchain::{BlockchainCmd, ImportBlockchain, ExportBlockchain, KillBlockchain, ExportState, DataFormat, ResetBlockchain};
+use blockchain::{BlockchainCmd, ImportBlockchain, ExportBlockchain, KillBlockchain, ExportState, DataFormat, ResetBlockchain, StatsState};
 use export_hardcoded_sync::ExportHsyncCmd;
 use presale::ImportWallet;
 use account::{AccountCmd, NewAccount, ListAccounts, ImportAccounts, ImportFromGethAccounts};
@@ -227,7 +227,7 @@ impl Configuration {
 			};
 			Cmd::Account(account_cmd)
 		} else if self.args.flag_import_geth_keys {
-				let account_cmd = AccountCmd::ImportFromGeth(
+			let account_cmd = AccountCmd::ImportFromGeth(
 				ImportFromGethAccounts {
 					spec: spec,
 					to: dirs.keys,
@@ -306,6 +306,24 @@ impl Configuration {
 					max_round_blocks_to_import: self.args.arg_max_round_blocks_to_import,
 				};
 				Cmd::Blockchain(BlockchainCmd::ExportState(export_cmd))
+			} else {
+				unreachable!();
+			}
+		} else if self.args.cmd_stats {
+ 			if self.args.cmd_stats_state {
+				let stats_cmd = StatsState {
+					spec: spec,
+					cache_config: cache_config,
+					dirs: dirs,
+					pruning: pruning,
+					pruning_history: pruning_history,
+					pruning_memory: self.args.arg_pruning_memory,
+					compaction: compaction,
+					tracing: tracing,
+					fat_db: fat_db,
+					max_round_blocks_to_import: self.args.arg_max_round_blocks_to_import,
+				};
+				Cmd::Blockchain(BlockchainCmd::StatsState(stats_cmd))
 			} else {
 				unreachable!();
 			}

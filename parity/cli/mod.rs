@@ -146,6 +146,16 @@ usage! {
 			}
 		}
 
+		CMD cmd_stats
+		{
+			"Collect blockchain statistics",
+
+			CMD cmd_stats_state
+			{
+				"Collect statistics on the blockchain state from the given --chain (default: mainnet) into a file. This command requires the chain to be synced with --fat-db off.",
+			}
+		}
+
 		CMD cmd_signer
 		{
 			"Manage signer",

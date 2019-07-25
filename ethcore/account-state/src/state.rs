@@ -35,16 +35,17 @@ use common_types::{
 	errors::EthcoreError as Error,
 };
 use ethereum_types::{Address, H256, U256};
-use ethtrie::{TrieDB, Result as TrieResult};
+use ethtrie::{RlpCodec, TrieDB, Result as TrieResult};
 use trie_vm_factories::{Factories, VmFactory};
 use hash_db::HashDB;
-use keccak_hash::{KECCAK_EMPTY, KECCAK_NULL_RLP};
+use keccak_hash::{KECCAK_EMPTY, KECCAK_NULL_RLP, keccak};
 use keccak_hasher::KeccakHasher;
 use kvdb::DBValue;
 use log::{warn, trace};
 use parity_bytes::Bytes;
 use pod::{self, PodAccount, PodState};
 use trie_db::{Trie, TrieError, Recorder};
+use trie_stats::{trie_stats, TrieStats};
 
 use crate::{
 	account::Account,
@@ -1071,6 +1072,21 @@ impl<B: Backend> State<B> {
 	/// Replace account code and storage. Creates account if it does not exist.
 	pub fn patch_account(&self, a: &Address, code: Arc<Bytes>, storage: HashMap<H256, H256>) -> TrieResult<()> {
 		Ok(self.require(a, false)?.reset_code_and_storage(code, storage))
+	}
+
+	pub fn storage_stats(&self) -> TrieResult<TrieStats> {
+		if !self.factories.trie.is_fat() {
+			panic!("must have FatDB on");
+		};
+		let db = self.db.as_hash_db();
+		trie_stats::<KeccakHasher, RlpCodec, BasicAccount, _, _>(
+			db,
+			&self.root,
+			|address, account| {
+				let account_db = self.factories.accountdb.readonly(db, keccak(address));
+				(account_db, account.storage_root)
+			}
+		)
 	}
 }
 

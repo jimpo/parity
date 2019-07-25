@@ -74,6 +74,7 @@ pub enum BlockchainCmd {
 	Import(ImportBlockchain),
 	Export(ExportBlockchain),
 	ExportState(ExportState),
+	StatsState(StatsState),
 	Reset(ResetBlockchain)
 }
 
@@ -159,6 +160,20 @@ pub struct ExportState {
 	pub max_round_blocks_to_import: usize,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct StatsState {
+	pub spec: SpecType,
+	pub cache_config: CacheConfig,
+	pub dirs: Directories,
+	pub pruning: Pruning,
+	pub pruning_history: u64,
+	pub pruning_memory: usize,
+	pub compaction: DatabaseCompactionProfile,
+	pub fat_db: Switch,
+	pub tracing: Switch,
+	pub max_round_blocks_to_import: usize,
+}
+
 pub fn execute(cmd: BlockchainCmd) -> Result<(), String> {
 	match cmd {
 		BlockchainCmd::Kill(kill_cmd) => kill_db(kill_cmd),
@@ -171,6 +186,7 @@ pub fn execute(cmd: BlockchainCmd) -> Result<(), String> {
 		}
 		BlockchainCmd::Export(export_cmd) => execute_export(export_cmd),
 		BlockchainCmd::ExportState(export_cmd) => execute_export_state(export_cmd),
+		BlockchainCmd::StatsState(stats_cmd) => execute_stats_state(stats_cmd),
 		BlockchainCmd::Reset(reset_cmd) => execute_reset(reset_cmd),
 	}
 }
@@ -727,6 +743,39 @@ fn execute_export_state(cmd: ExportState) -> Result<(), String> {
 	}
 	out.write_fmt(format_args!("\n}}}}")).expect("Write error");
 	info!("Export completed.");
+	Ok(())
+}
+
+fn execute_stats_state(cmd: StatsState) -> Result<(), String> {
+	let service = start_client(
+		cmd.dirs,
+		cmd.spec,
+		cmd.pruning,
+		cmd.pruning_history,
+		cmd.pruning_memory,
+		cmd.tracing,
+		cmd.fat_db,
+		cmd.compaction,
+		cmd.cache_config,
+		false,
+		cmd.max_round_blocks_to_import,
+	)?;
+
+	let client = service.client();
+
+	let storage_stats = client.latest_state().storage_stats()
+		.map_err(|e| format!("Failed to collect storage stats: {}", e))?;
+
+	println!("Node count: {}", storage_stats.node_count);
+	println!("Node total size (B): {}", storage_stats.node_total_size);
+	println!("Value count: {}", storage_stats.value_count);
+	println!("Value total size (B): {}", storage_stats.value_total_size);
+	println!("Account count: {}", storage_stats.account_count);
+	println!("Child node count: {}", storage_stats.child_node_count);
+	println!("Child node total size (B): {}", storage_stats.child_node_total_size);
+	println!("Child value count: {}", storage_stats.child_value_count);
+	println!("Child value total size (B): {}", storage_stats.child_value_total_size);
+
 	Ok(())
 }
 
